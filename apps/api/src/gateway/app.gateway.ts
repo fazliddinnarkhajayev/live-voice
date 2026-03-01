@@ -32,12 +32,14 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.handshake.auth?.token ||
         client.handshake.headers?.authorization?.replace('Bearer ', '');
       if (!token) {
+        client.emit('error', { message: 'Authentication token required' });
         client.disconnect();
         return;
       }
       const payload = this.jwtService.verify(token);
       client.data.user = await this.usersService.findById(payload.sub);
     } catch {
+      client.emit('error', { message: 'Invalid or expired token' });
       client.disconnect();
     }
   }

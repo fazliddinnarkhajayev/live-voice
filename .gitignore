@@ -4,6 +4,9 @@ dist/
 .env
 *.log
 
+# API dist
+apps/api/dist/
+
 # Flutter
 apps/mobile/.dart_tool/
 apps/mobile/build/

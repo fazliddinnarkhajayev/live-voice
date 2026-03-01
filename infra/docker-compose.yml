@@ -45,7 +45,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: postgres
       DB_NAME: livevoice
-      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in infra/.env}
       JWT_EXPIRES_IN: 7d
       LIVEKIT_URL: ws://livekit:7880
       LIVEKIT_API_KEY: devkey

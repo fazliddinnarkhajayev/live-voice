@@ -5,15 +5,24 @@ import {
   ForbiddenException,
   ConflictException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
 import type { Knex } from 'knex';
 import { KNEX_CONNECTION } from '../common/constants';
 import { CreateGroupDto } from './dto/create-group.dto';
 
 function randomCode(length = 8): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const charCount = chars.length; // 32 = 2^5, fits evenly in 256
   let code = '';
-  for (let i = 0; i < length; i++) {
-    code += chars[Math.floor(Math.random() * chars.length)];
+  // Use extra bytes to allow for rejection sampling
+  while (code.length < length) {
+    const bytes = randomBytes(length * 2);
+    for (let i = 0; i < bytes.length && code.length < length; i++) {
+      // Reject bytes that would create modulo bias (256 % 32 == 0, so no bias here, but kept for correctness)
+      if (bytes[i] < Math.floor(256 / charCount) * charCount) {
+        code += chars[bytes[i] % charCount];
+      }
+    }
   }
   return code;
 }
