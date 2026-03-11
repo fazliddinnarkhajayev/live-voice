@@ -1,0 +1,39 @@
+# Node dependencies
+node_modules/
+
+# Build outputs
+android/build/
+android/app/build/
+ios/build/
+ios/Pods/
+*.ipa
+*.apk
+*.aab
+
+# Metro bundler cache
+.metro-health-check*
+.bundle/
+
+# Jest cache
+coverage/
+.jest-cache/
+
+# Environment files
+.env
+.env.*
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# React Native generated
+android/app/src/main/assets/index.android.bundle
+android/app/src/main/res/drawable-*/
+ios/*.xcworkspace/xcuserdata/
+
+# Offline tile binaries (too large for git – generated at build time)
+android/app/src/main/assets/tiles/**/*.png
+!android/app/src/main/assets/tiles/README.md
