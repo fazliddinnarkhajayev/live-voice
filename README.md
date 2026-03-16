@@ -1,10 +1,89 @@
 # Live Voice
 
-A React Native app combining voice recording, speech recognition, and an offline GPS map of Tashkent.
+This monorepo contains two complementary projects:
+
+1. **Tour Guide Live Voice** – a live audio broadcast system (Flutter mobile + NestJS API + LiveKit SFU) where guides stream audio to listen-only groups.
+2. **Offline GPS Map (React Native)** – a React Native app with voice recording, speech recognition, and an offline GPS map of Tashkent.
 
 ---
 
-## Features
+## Repository structure
+
+```
+live-voice/
+├── apps/
+│   ├── api/          # NestJS backend (auth, groups, sessions, WebSocket)
+│   └── mobile/       # Flutter mobile app (guide + listener flows)
+├── infra/
+│   ├── docker-compose.yml   # Postgres + LiveKit + API
+│   └── livekit.yaml
+├── android/          # Android platform config for React Native app
+├── ios/              # iOS platform config for React Native app
+├── src/              # React Native app source
+└── index.js          # React Native entry point
+```
+
+---
+
+## Part 1 – Tour Guide Live Voice (Flutter + NestJS)
+
+### Features
+
+- **Guide** broadcasts live audio to a group via LiveKit WebRTC SFU.
+- **Listeners** hear the guide in real-time (listen-only, mic never enabled).
+- JWT authentication with guide/listener role selection at registration.
+- Pre-tour checklist (DND/volume/headphones) for listeners.
+- Real-time listener count via Socket.IO WebSocket gateway.
+- Cryptographically secure group invite codes.
+
+### Tech stack
+
+| Layer | Technology |
+|-------|-----------|
+| Mobile | Flutter 3 + Riverpod |
+| Backend | NestJS 10 + Knex + PostgreSQL 16 |
+| Live Voice | LiveKit (WebRTC SFU) |
+| Auth | JWT (email + password) |
+| Real-time | Socket.IO WebSocket gateway |
+| Deployment | Docker Compose (local) / Render (cloud) |
+
+### Quick start
+
+#### Prerequisites
+
+- Docker >= 24 + Docker Compose v2
+- Node.js >= 20 (for local API dev without Docker)
+- Flutter >= 3.10 (for mobile)
+
+#### 1. Configure environment
+
+```bash
+cp infra/.env.example infra/.env
+# Edit infra/.env – set JWT_SECRET, LIVEKIT_API_KEY, LIVEKIT_API_SECRET
+```
+
+#### 2. Start backend + database
+
+```bash
+cd infra
+docker compose up --build
+```
+
+The API auto-runs migrations and seeds a demo guide + listener account on first start.
+
+#### 3. Run Flutter app
+
+```bash
+cd apps/mobile
+flutter pub get
+flutter run
+```
+
+---
+
+## Part 2 – Offline GPS Map (React Native)
+
+### Features
 
 - **Voice recording** – start and stop audio recording sessions, list and delete saved recordings.
 - **Speech-to-text** – real-time transcription via `@react-native-community/voice`.
@@ -14,52 +93,34 @@ A React Native app combining voice recording, speech recognition, and an offline
 - 🛤 **Track recording** – Records the full route as a polyline drawn on the map.
 - 🎯 **Accuracy ring** – Visualises GPS horizontal accuracy around the user's position.
 
----
-
-## Project structure
+### Project structure
 
 ```
-live-voice/
-├── index.js                        # React Native entry point
-├── package.json
-├── babel.config.js
-└── src/
-    ├── services/
-    │   ├── VoiceRecorderService.js   # Recording lifecycle management
-    │   ├── SpeechRecognitionService.js # Speech-to-text wrapper
-    │   ├── GpsTrackingService.js     # Singleton GPS watcher
-    │   └── OfflineTileService.js     # Offline tile file management
-    ├── utils/
-    │   ├── audioHelpers.js           # Pure helper functions
-    │   └── tashkentConstants.js      # Geographic constants for Tashkent
-    ├── components/
-    │   ├── OfflineMapView.js         # MapView with offline UrlTile layer
-    │   └── TrackingControls.js       # Start/Stop/Clear GPS panel
-    ├── hooks/
-    │   └── useGpsTracking.js         # React hook wrapping GpsTrackingService
-    ├── screens/
-    │   └── OfflineMapScreen.js       # Top-level map screen
-    ├── __mocks__/                    # Jest mocks for native modules
-    │   ├── voice.js
-    │   ├── sound.js
-    │   ├── react-native-fs.js
-    │   ├── geolocation.js
-    │   ├── react-native-maps.js
-    │   └── react-native-sqlite-storage.js
-    └── __tests__/                    # Unit test suites
-        ├── VoiceRecorderService.test.js
-        ├── SpeechRecognitionService.test.js
-        ├── audioHelpers.test.js
-        ├── GpsTrackingService.test.js
-        ├── OfflineTileService.test.js
-        └── tashkentConstants.test.js
+src/
+├── services/
+│   ├── VoiceRecorderService.js   # Recording lifecycle management
+│   ├── SpeechRecognitionService.js # Speech-to-text wrapper
+│   ├── GpsTrackingService.js     # Singleton GPS watcher
+│   └── OfflineTileService.js     # Offline tile file management
+├── utils/
+│   ├── audioHelpers.js           # Pure helper functions
+│   └── tashkentConstants.js      # Geographic constants for Tashkent
+├── components/
+│   ├── OfflineMapView.js         # MapView with offline UrlTile layer
+│   └── TrackingControls.js       # Start/Stop/Clear GPS panel
+├── hooks/
+│   └── useGpsTracking.js         # React hook wrapping GpsTrackingService
+├── screens/
+│   └── OfflineMapScreen.js       # Top-level map screen
+├── __mocks__/                    # Jest mocks for native modules
+└── __tests__/                    # Unit test suites
 ```
 
 ---
 
-## Getting started
+### Getting started (React Native app)
 
-### Prerequisites
+#### Prerequisites
 
 | Tool | Minimum version |
 |------|----------------|
@@ -68,7 +129,7 @@ live-voice/
 | React Native CLI | 0.73 |
 | Android Studio / Xcode | latest stable |
 
-### Install dependencies
+#### Install dependencies
 
 ```bash
 npm install
