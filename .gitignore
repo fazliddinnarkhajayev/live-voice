@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Build artifacts
+android/app/build/
+android/build/
+ios/build/
+ios/Pods/
+
+# Metro bundler cache
+.metro-cache/
+
+# Jest coverage
+coverage/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.iml
