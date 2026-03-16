@@ -1,6 +1,6 @@
 # Live Voice
 
-A React Native voice recording and speech-recognition module.
+A React Native app combining voice recording, speech recognition, and an offline GPS map of Tashkent.
 
 ---
 
@@ -9,6 +9,10 @@ A React Native voice recording and speech-recognition module.
 - **Voice recording** – start and stop audio recording sessions, list and delete saved recordings.
 - **Speech-to-text** – real-time transcription via `@react-native-community/voice`.
 - **Audio utilities** – duration formatting, filename generation, transcript validation.
+- 🗺 **Offline map** – OpenStreetMap tiles for Tashkent (zoom 10–17) served from local storage – no internet required.
+- 📍 **GPS tracking** – Continuous position tracking using the device's hardware GPS chipset.
+- 🛤 **Track recording** – Records the full route as a polyline drawn on the map.
+- 🎯 **Accuracy ring** – Visualises GPS horizontal accuracy around the user's position.
 
 ---
 
@@ -22,17 +26,33 @@ live-voice/
 └── src/
     ├── services/
     │   ├── VoiceRecorderService.js   # Recording lifecycle management
-    │   └── SpeechRecognitionService.js # Speech-to-text wrapper
+    │   ├── SpeechRecognitionService.js # Speech-to-text wrapper
+    │   ├── GpsTrackingService.js     # Singleton GPS watcher
+    │   └── OfflineTileService.js     # Offline tile file management
     ├── utils/
-    │   └── audioHelpers.js           # Pure helper functions
+    │   ├── audioHelpers.js           # Pure helper functions
+    │   └── tashkentConstants.js      # Geographic constants for Tashkent
+    ├── components/
+    │   ├── OfflineMapView.js         # MapView with offline UrlTile layer
+    │   └── TrackingControls.js       # Start/Stop/Clear GPS panel
+    ├── hooks/
+    │   └── useGpsTracking.js         # React hook wrapping GpsTrackingService
+    ├── screens/
+    │   └── OfflineMapScreen.js       # Top-level map screen
     ├── __mocks__/                    # Jest mocks for native modules
     │   ├── voice.js
     │   ├── sound.js
-    │   └── react-native-fs.js
+    │   ├── react-native-fs.js
+    │   ├── geolocation.js
+    │   ├── react-native-maps.js
+    │   └── react-native-sqlite-storage.js
     └── __tests__/                    # Unit test suites
         ├── VoiceRecorderService.test.js
         ├── SpeechRecognitionService.test.js
-        └── audioHelpers.test.js
+        ├── audioHelpers.test.js
+        ├── GpsTrackingService.test.js
+        ├── OfflineTileService.test.js
+        └── tashkentConstants.test.js
 ```
 
 ---
@@ -203,3 +223,51 @@ voice._simulateSpeechError({ code: '7' });       // fires onSpeechError
 ```
 
 Use these inside any test that needs to trigger the service's event handlers.
+---
+
+## Offline GPS Map (Tashkent)
+
+### GPS Tracking
+
+GPS tracking works **entirely offline** using the device's hardware GPS chipset.
+Fixes with horizontal accuracy worse than **50 m** are automatically discarded.
+
+#### Required Permissions
+
+| Platform | Permission |
+|---|---|
+| Android | `ACCESS_FINE_LOCATION`, `ACCESS_BACKGROUND_LOCATION` |
+| iOS | `NSLocationWhenInUseUsageDescription`, `NSLocationAlwaysAndWhenInUseUsageDescription` |
+
+### Example: GPS subscription
+
+```js
+import GpsTrackingService from './src/services/GpsTrackingService';
+
+GpsTrackingService.startTracking();
+const unsub = GpsTrackingService.onLocationUpdate(point => {
+  // { latitude, longitude, accuracy, speed, heading, altitude, timestamp }
+  console.log(point.latitude, point.longitude);
+});
+// later: unsub(); GpsTrackingService.stopTracking();
+```
+
+### Offline Tile Coverage (Tashkent)
+
+| Bound | Value |
+|---|---|
+| West  | 69.1° E |
+| South | 41.2° N |
+| East  | 69.45° E |
+| North | 41.4° N |
+| Zoom  | 10 – 17 |
+
+Tiles must be placed under `android/app/src/main/assets/tiles/` before building,
+following the standard OSM `{z}/{x}/{y}.png` convention.
+
+The `geolocation.js` mock exposes helper methods for GPS tests:
+
+```js
+Geolocation._simulatePosition({ coords: { latitude: 41.3, longitude: 69.24, accuracy: 10 } });
+Geolocation._simulateError({ code: 1, message: 'Permission denied' });
+```
