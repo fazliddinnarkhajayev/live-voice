@@ -112,7 +112,11 @@ function TrackingControls({
           </TouchableOpacity>
         )}
         <TouchableOpacity
-          style={[styles.button, styles.clearButton]}
+          style={[
+            styles.button,
+            styles.clearButton,
+            trackLength === 0 && styles.buttonDisabled,
+          ]}
           onPress={onClear}
           disabled={trackLength === 0}
           accessibilityRole="button"
@@ -229,6 +233,9 @@ const styles = StyleSheet.create({
   },
   clearButton: {
     backgroundColor: '#ECEFF1',
+  },
+  buttonDisabled: {
+    opacity: 0.5,
   },
   buttonText: {
     fontSize: 14,

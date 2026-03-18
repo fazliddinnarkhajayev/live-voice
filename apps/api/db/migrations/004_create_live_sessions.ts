@@ -9,6 +9,7 @@ export async function up(knex: Knex): Promise<void> {
     table.enu('status', ['active', 'ended']).notNullable().defaultTo('active');
     table.timestamp('started_at').defaultTo(knex.fn.now());
     table.timestamp('ended_at').nullable();
+    table.timestamps(true, true);
   });
 }
 
