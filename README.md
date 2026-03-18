@@ -81,6 +81,123 @@ flutter run
 
 ---
 
+### Build and test the backend (NestJS) locally
+
+Use this if you want to build or test the API without Docker.
+
+#### Prerequisites
+
+- Node.js >= 20 and npm >= 9
+- PostgreSQL 16 running locally (or use the Docker Compose postgres service)
+
+#### Install dependencies
+
+```bash
+cd apps/api
+npm install
+```
+
+#### Configure environment
+
+```bash
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env – set DB_HOST, DB_USER, DB_PASSWORD, JWT_SECRET, LIVEKIT_* values
+```
+
+#### Run database migrations and seed
+
+```bash
+cd apps/api
+npx knex --knexfile knexfile.ts migrate:latest
+npx knex --knexfile knexfile.ts seed:run
+```
+
+#### Start the API in development mode (auto-reloads on file changes)
+
+```bash
+cd apps/api
+npm run start:dev
+```
+
+The API will be available at `http://localhost:3000`.
+
+#### Build for production
+
+```bash
+cd apps/api
+npm run build        # compiles TypeScript → dist/
+npm start            # runs dist/main.js
+```
+
+#### Run backend unit tests
+
+```bash
+cd apps/api
+npm test
+```
+
+---
+
+### Build the Flutter mobile app
+
+#### Debug build (development)
+
+```bash
+cd apps/mobile
+flutter pub get
+flutter run            # connects to a running emulator or physical device
+```
+
+By default the app connects to `http://10.0.2.2:3000` (Android emulator → host machine).
+Override the API URL at build time with `--dart-define`:
+
+```bash
+# Android emulator
+flutter run --dart-define API_BASE_URL=http://10.0.2.2:3000
+
+# iOS simulator
+flutter run --dart-define API_BASE_URL=http://localhost:3000
+
+# Physical device on the same Wi-Fi (replace with your machine's IP)
+flutter run --dart-define API_BASE_URL=http://192.168.1.100:3000
+
+# Deployed backend
+flutter run --dart-define API_BASE_URL=https://your-api.onrender.com
+```
+
+#### Android release APK
+
+```bash
+cd apps/mobile
+flutter build apk --release
+# Output: build/app/outputs/flutter-apk/app-release.apk
+```
+
+#### Android App Bundle (recommended for Play Store)
+
+```bash
+cd apps/mobile
+flutter build appbundle --release
+# Output: build/app/outputs/bundle/release/app-release.aab
+```
+
+#### iOS release (macOS only)
+
+```bash
+cd apps/mobile
+flutter build ipa --release
+# Output: build/ios/ipa/*.ipa  (requires Apple Developer account)
+```
+
+#### Run Flutter tests
+
+```bash
+cd apps/mobile
+flutter test
+```
+
+---
+
 ## Part 2 – Offline GPS Map (React Native)
 
 ### Features
@@ -155,9 +272,12 @@ Expected output:
  PASS  src/__tests__/audioHelpers.test.js
  PASS  src/__tests__/SpeechRecognitionService.test.js
  PASS  src/__tests__/VoiceRecorderService.test.js
+ PASS  src/__tests__/GpsTrackingService.test.js
+ PASS  src/__tests__/OfflineTileService.test.js
+ PASS  src/__tests__/tashkentConstants.test.js
 
-Test Suites: 3 passed, 3 total
-Tests:       58 passed, 58 total
+Test Suites: 6 passed, 6 total
+Tests:       100 passed, 100 total
 ```
 
 ### Run a single test file
@@ -166,6 +286,9 @@ Tests:       58 passed, 58 total
 npx jest src/__tests__/VoiceRecorderService.test.js
 npx jest src/__tests__/SpeechRecognitionService.test.js
 npx jest src/__tests__/audioHelpers.test.js
+npx jest src/__tests__/GpsTrackingService.test.js
+npx jest src/__tests__/OfflineTileService.test.js
+npx jest src/__tests__/tashkentConstants.test.js
 ```
 
 ### Run tests whose name matches a pattern
@@ -229,6 +352,44 @@ Tests pure utility functions:
 | `formatDuration` | `0 s`, `65 s`, `3600 s`, fractional seconds (truncation), negative/NaN/non-number (throws) |
 | `generateRecordingFilename` | Fixed date produces deterministic output, no colons in result, correct prefix, defaults to now |
 | `isValidTranscript` | Non-empty string, empty string, whitespace-only, null, undefined, number |
+
+### `GpsTrackingService.test.js`
+
+Tests the singleton GPS tracking service:
+
+| Scenario | What is verified |
+|----------|-----------------|
+| Initial state | `isTracking` is `false`, empty track, `currentPosition` is `null` |
+| `startTracking` | Sets tracking flag, calls `Geolocation.watchPosition`, idempotent on duplicate calls |
+| `stopTracking` | Clears tracking flag, calls `Geolocation.clearWatch`, idempotent when not started |
+| Position updates | Stores fix in track, updates `currentPosition`, notifies subscribers, discards inaccurate fixes (>50 m) |
+| Unsubscribe | Removed callback is not called after `unsub()` |
+| Error handling | GPS failures are forwarded to error subscribers as `Error` instances |
+| `clearTrack` | Resets track to empty without stopping the watcher |
+
+### `OfflineTileService.test.js`
+
+Tests offline map tile utilities:
+
+| Function / Scenario | What is verified |
+|---------------------|-----------------|
+| `lonToTileX` | Correct tile X for 0°, −180°, and Tashkent longitude at zoom 10 |
+| `latToTileY` | Correct tile Y for Tashkent latitude; always non-negative |
+| `getLocalTileUri` | Returns `null` for missing tiles, `file://` URI for present tiles, `null` on I/O error |
+| `getOfflineTileUrlTemplate` | Contains `{z}`, `{x}`, `{y}` placeholders; starts with `file://` |
+| `verifyTileCoverage` | Reports `complete=false` when tiles are missing; `complete=true` when all present; `missingCount + present = total` |
+
+### `tashkentConstants.test.js`
+
+Tests the geographic constant values for Tashkent:
+
+| Constant | What is verified |
+|----------|-----------------|
+| `TASHKENT_CENTER` | Latitude and longitude fall within city boundaries |
+| `TASHKENT_BOUNDS` | North > South, East > West; center point is contained within bounds |
+| `DEFAULT_DELTA` | Both `latitudeDelta` and `longitudeDelta` are positive |
+| `ZOOM_LEVELS` | City < District < Street < Building (ascending order) |
+| `OFFLINE_TILE_ZOOM_RANGE` | `min < max`; min ≥ 10; max ≤ 20 |
 
 ---
 
