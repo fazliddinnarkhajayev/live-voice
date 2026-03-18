@@ -7,18 +7,23 @@ import {
   ConnectedSocket,
   MessageBody,
 } from '@nestjs/websockets';
+import { Logger } from '@nestjs/common';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: {
+    origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:3000'],
+    credentials: true,
+  },
   namespace: '/',
 })
 export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private readonly logger = new Logger(AppGateway.name);
   private listenerCounts: Map<number, Set<string>> = new Map();
 
   constructor(
@@ -37,8 +42,15 @@ export class AppGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
       const payload = this.jwtService.verify(token);
-      client.data.user = await this.usersService.findById(payload.sub);
-    } catch {
+      const user = await this.usersService.findById(payload.sub);
+      if (!user) {
+        client.emit('error', { message: 'User not found' });
+        client.disconnect();
+        return;
+      }
+      client.data.user = user;
+    } catch (err) {
+      this.logger.warn(`WebSocket auth failed for client ${client.id}: ${(err as Error)?.message ?? String(err)}`);
       client.emit('error', { message: 'Invalid or expired token' });
       client.disconnect();
     }
